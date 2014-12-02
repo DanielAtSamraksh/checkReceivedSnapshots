@@ -1,4 +1,4 @@
-checkReceivedSnapshots
-======================
+checkSentSnapshots
+==================
 
-Haskell program to check received snapshot logs.
+Haskell code to check sent snapshots log files.
