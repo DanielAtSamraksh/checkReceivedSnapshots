@@ -58,7 +58,7 @@ executable checkReceivedSnapshots
   
   -- Other library packages from which modules are imported.
   -- build-depends:       base >=4.7 && <4.8, binary
-  build-depends:       base, binary
+  build-depends:       base, binary, containers
   
   -- Directories containing source files.
   -- hs-source-dirs:      
