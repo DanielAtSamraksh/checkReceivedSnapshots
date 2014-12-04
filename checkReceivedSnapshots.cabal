@@ -46,9 +46,19 @@ extra-source-files:  README.md
 cabal-version:       >=1.10
 
 
+executable test
+  main-is: testread.hs
+  build-depends: base, binary, bytestring
+  default-language:    Haskell2010
+  
+executable hash
+  main-is: hash.hs
+  build-depends: base, binary
+  default-language:    Haskell2010
+  
 executable checkReceivedSnapshots
   -- .hs or .lhs file containing the Main module.
-  main-is:             checkReceivedSnapshots.hs
+  main-is:  checkReceivedSnapshots.hs
   
   -- Modules included in this executable, other than Main.
   -- other-modules:       
@@ -58,7 +68,7 @@ executable checkReceivedSnapshots
   
   -- Other library packages from which modules are imported.
   -- build-depends:       base >=4.7 && <4.8, binary
-  build-depends:       base, binary, containers
+  build-depends:       base, binary, bytestring, containers
   
   -- Directories containing source files.
   -- hs-source-dirs:      
