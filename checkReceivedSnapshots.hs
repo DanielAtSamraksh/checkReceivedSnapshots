@@ -12,7 +12,8 @@ import Data.Binary.Get ( isEmpty, runGet, getWord16host, getWord32host )
 -- see http://hackage.haskell.org/package/binary-0.4.1/docs/Data-Binary.html#t:Binary
 type Hash = B.Word32
 type NodeId = B.Word16
-data Snapshot = Snapshot { nodeId :: NodeId
+data Snapshot = Snapshot { now :: B.Word32
+                         , nodeId :: NodeId
                          , hops :: B.Word16
                          , timestamp :: B.Word32
                          , x :: B.Word32
@@ -22,6 +23,7 @@ data Snapshot = Snapshot { nodeId :: NodeId
 
 instance B.Binary Snapshot where
   put s = do
+    B.put $ now s
     B.put $ nodeId s
     B.put $ hops s
     B.put $ timestamp s
@@ -29,13 +31,15 @@ instance B.Binary Snapshot where
     B.put $ y s
     B.put $ checkSum s
   get = do
+    r <- getWord32host
     n <- getWord16host
     h <- getWord16host
     t <- getWord32host
     x <- getWord32host
     y <- getWord32host
     c <- getWord32host
-    return $ Snapshot { nodeId = n
+    return $ Snapshot { now = r
+                      , nodeId = n
                       , hops = h
                       , timestamp = t
                       , x = x
