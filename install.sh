@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+mkdir -p "${HOME}/bin"
 paths=( ".cabal/bin" "${HOME}/bine" )
 for pathcomponent in "${paths[@]}"; do
     if ! echo "$PATH" | grep "$pathcomponent"; then
