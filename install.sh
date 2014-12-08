@@ -26,3 +26,9 @@ exs=( checkReceivedSnapshots partialCheckReceivedSnapshots printReceivedSnapshot
 for p in ${exs[@]}; do
   ln -s "$(pwd)/dist/build/$p/$p" "${HOME}/bin"
 done
+
+
+scripts=( makeDelays.sh )
+for p in ${scripts[@]}; do 
+  ln -s "$(pwd)/$p" "${HOME}/bin"
+done
