@@ -10,47 +10,56 @@ import qualified Data.Binary as B
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict ( (!) )
 
-import Data.Binary.Get ( isEmpty, runGet, getWord16host, getWord32host )
+import Data.Binary.Get ( isEmpty, runGet, getWord16host, getWord32host, getWord64host )
 
 import Math.NumberTheory.Powers.Squares (integerSquareRoot)
 
 -- see http://hackage.haskell.org/package/binary-0.4.1/docs/Data-Binary.html#t:Binary
 type Hash = B.Word32
 type NodeId = B.Word16
-type Time = B.Word32
+type Time = B.Word64
 type Distance = B.Word32
 type Hops = B.Word16
 
 data Snapshot = Snapshot { now :: Time
+                         , timestamp :: Time
                          , nodeId :: NodeId
                          , hops :: Hops
-                         , timestamp :: Time
                          , x :: Distance
                          , y :: Distance
                          , checkSum :: Hash
-                         } deriving (Show)
+                         } -- deriving (Show)
 
+instance Show Snapshot where
+  show s = "receivedTime=" ++ ( show $ now s )
+    ++ ", " ++ "timestamp=" ++ ( show $ timestamp s )
+    ++ ", " ++ "nodeId=" ++ ( show $ nodeId s )
+    ++ ", " ++ "hops=" ++ ( show $ hops s )
+    ++ ", " ++ "x=" ++ ( show $ x s )
+    ++ ", " ++ "y=" ++ ( show $ y s )
+    ++ ", " ++ "copTableHash=" ++ ( show $ checkSum s )
+    
 instance B.Binary Snapshot where
   put s = do
     B.put $ now s
+    B.put $ timestamp s
     B.put $ nodeId s
     B.put $ hops s
-    B.put $ timestamp s
     B.put $ x s
     B.put $ y s
     B.put $ checkSum s
   get = do
-    r <- getWord32host
+    r <- getWord64host
+    t <- getWord64host
     n <- getWord16host
     h <- getWord16host
-    t <- getWord32host
     x <- getWord32host
     y <- getWord32host
     c <- getWord32host
     return $ Snapshot { now = r
+                      , timestamp = t
                       , nodeId = n
                       , hops = h
-                      , timestamp = t
                       , x = x
                       , y = y
                       , checkSum = c
@@ -58,7 +67,7 @@ instance B.Binary Snapshot where
 
 type CopTable = Map.Map B.Word16 Snapshot
 
-type HashInternal = B.Word32
+type HashInternal = B.Word64
 hash :: HashInternal -> HashInternal -> HashInternal
 hash x y = ( a * ( x + y ) + c ) `mod` m
      where a = 1140671485
@@ -69,8 +78,8 @@ hashRow :: HashInternal -> Snapshot -> HashInternal
 hashRow h r = h `hash` ( fromIntegral $ nodeId r )
                 `hash` ( fromIntegral $ hops r )
                 `hash` timestamp r
-                `hash` x r
-                `hash` y r
+                `hash` ( fromIntegral $ x r )
+                `hash` ( fromIntegral $ y r )
 
 
 checkTable :: CopTable -> Hash
@@ -132,7 +141,7 @@ getContents nid = do
 dist :: Snapshot -> Snapshot -> Distance
 dist a b = integerSquareRoot $ (x a - x b) ^ 2 + ( y a - y b ) ^2
 
-data Staleness = Staleness Distance Time
+data Staleness = Staleness Time Distance
 snapshots2stalenesses :: NodeId -> [Snapshot] -> [ Staleness ]
 snapshots2stalenesses nid snapshots = ss
   where (ss, m ) = foldl f ([], Map.empty) snapshots -- ss=stalenesses, m=map, 
@@ -144,14 +153,14 @@ snapshots2stalenesses nid snapshots = ss
                     then Map.insert nid s m
                     else m )
           | ( timestamp $ m ! nodeId s ) < timestamp s
-            = ( (Staleness (dist s $ m ! nid) (now s - (timestamp $ m ! nodeId s)): ss), 
+            = ( (Staleness  (now s - (timestamp $ m ! nodeId s)) (dist s $ m ! nid)):ss,
                 Map.insert (nodeId s) s m )
           | otherwise = ( ss, m )
        
 
 instance B.Binary Staleness where
-  put (Staleness d t) = do B.put d; B.put t
-  get = do d <- getWord32host; t <- getWord32host; return $ Staleness d t
+  put (Staleness t d) = do B.put t; B.put d
+  get = do t <- getWord64host; d <- getWord32host; return $ Staleness t d
 
 putStalenesses :: [Staleness] -> IO()
 putStalenesses = BL.putStr . B.encode
