@@ -2,25 +2,31 @@ module ReceivedSnapshots where
 
 import System.Exit ( exitFailure, exitSuccess )
 import Data.ByteString.Lazy (ByteString)
-import Prelude hiding ( readFile )
-import qualified Data.ByteString.Lazy as BL ( readFile )
+import Prelude hiding ( readFile, getContents, putStr )
+import qualified Data.ByteString.Lazy as BL ( readFile, getContents, putStr )
 import Control.Monad (when)
 
 import qualified Data.Binary as B
 import qualified Data.Map.Strict as Map
+import Data.Map.Strict ( (!) )
 
 import Data.Binary.Get ( isEmpty, runGet, getWord16host, getWord32host )
 
+import Math.NumberTheory.Powers.Squares (integerSquareRoot)
 
 -- see http://hackage.haskell.org/package/binary-0.4.1/docs/Data-Binary.html#t:Binary
 type Hash = B.Word32
 type NodeId = B.Word16
-data Snapshot = Snapshot { now :: B.Word32
+type Time = B.Word32
+type Distance = B.Word32
+type Hops = B.Word16
+
+data Snapshot = Snapshot { now :: Time
                          , nodeId :: NodeId
-                         , hops :: B.Word16
-                         , timestamp :: B.Word32
-                         , x :: B.Word32
-                         , y :: B.Word32
+                         , hops :: Hops
+                         , timestamp :: Time
+                         , x :: Distance
+                         , y :: Distance
                          , checkSum :: Hash
                          } deriving (Show)
 
@@ -86,7 +92,8 @@ check nid ss = f Map.empty ss
                          t' = Map.insertWith (updateRow nid) n s' t
                      in if checkTable t' == checkSum s then f t' ss else False
 
-getList :: B.Get [ Snapshot ]
+--getList :: B.Binary a => B.Get [ a ]
+getList :: B.Get [Snapshot]
 getList = do
   e <- isEmpty
   if e then return []
@@ -105,6 +112,9 @@ die err = return $ error err
 printSnapshots :: [Snapshot] -> IO()
 printSnapshots ss = mapM_ print ss
 
+putSnapshots :: [Snapshot] -> IO()
+putSnapshots ss = mapM_ (BL.putStr . B.encode) ss
+
 readFile :: NodeId -> String -> IO [Snapshot]
 readFile nid filename = do
   input <- BL.readFile filename
@@ -112,4 +122,37 @@ readFile nid filename = do
   when (not $ check nid snapshots) $ die "copHashes don't match."
   return snapshots
 
+getContents :: NodeId -> IO [Snapshot]
+getContents nid = do
+  input <- BL.getContents
+  let snapshots = runGet getList input :: [Snapshot]
+  when (not $ check nid snapshots) $ die "copHashes don't match."
+  return snapshots
 
+dist :: Snapshot -> Snapshot -> Distance
+dist a b = integerSquareRoot $ (x a - x b) ^ 2 + ( y a - y b ) ^2
+
+data Staleness = Staleness Distance Time
+snapshots2stalenesses :: NodeId -> [Snapshot] -> [ Staleness ]
+snapshots2stalenesses nid snapshots = ss
+  where (ss, m ) = foldl f ([], Map.empty) snapshots -- ss=stalenesses, m=map, 
+        f ( ss, m ) s
+          | Map.notMember (nodeId s) m
+            = ( ss, Map.insert (nodeId s) s m )
+          | nid == nodeId s
+            = ( ss, if ( timestamp $ m ! nid ) < timestamp s
+                    then Map.insert nid s m
+                    else m )
+          | ( timestamp $ m ! nodeId s ) < timestamp s
+            = ( (Staleness (dist s $ m ! nid) (now s - (timestamp $ m ! nodeId s)): ss), 
+                Map.insert (nodeId s) s m )
+          | otherwise = ( ss, m )
+       
+
+instance B.Binary Staleness where
+  put (Staleness d t) = do B.put d; B.put t
+  get = do d <- getWord32host; t <- getWord32host; return $ Staleness d t
+
+putStalenesses :: [Staleness] -> IO()
+putStalenesses = BL.putStr . B.encode
+          
