@@ -89,6 +89,12 @@ executable receivedSnapshots2staleness
   build-depends: base, binary, bytestring, containers, arithmoi, hstats
   default-language:    Haskell2010
 
+executable receivedSnapshots2staleness32text
+  main-is:  receivedSnapshots2staleness32text.hs
+  other-modules: ReceivedSnapshots
+  build-depends: base, binary, bytestring, containers, arithmoi, hstats
+  default-language:    Haskell2010
+
 executable partialCheckReceivedSnapshots
   main-is: partialCheckReceivedSnapshots.hs
   other-modules: ReceivedSnapshots

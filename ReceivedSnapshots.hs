@@ -164,4 +164,17 @@ instance B.Binary Staleness where
 
 putStalenesses :: [Staleness] -> IO()
 putStalenesses = BL.putStr . B.encode
-          
+
+data Staleness32 = Staleness32 B.Word32 B.Word32
+instance Show Staleness32 where
+  show (Staleness32 t d) = show t ++ " " ++ show d
+
+
+snapshots2stalenesses32 :: NodeId -> [Snapshot] -> [Staleness32]
+snapshots2stalenesses32 nid snapshots =
+  [ Staleness32 (fromIntegral $ t `quot` 1000000) d
+    | Staleness t d <- snapshots2stalenesses nid snapshots ]
+
+printStalenesses32 :: [Staleness32] -> IO()
+printStalenesses32 ss = mapM_ print ss
+

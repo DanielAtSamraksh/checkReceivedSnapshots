@@ -22,13 +22,13 @@ cabal configure
 cabal build
 
 mkdir -p "$HOME/bin"
-exs=( checkReceivedSnapshots partialCheckReceivedSnapshots printReceivedSnapshots receivedSnapshots2staleness )
+exs=( checkReceivedSnapshots partialCheckReceivedSnapshots printReceivedSnapshots receivedSnapshots2staleness receivedSnapshots2staleness32text )
 for p in ${exs[@]}; do
   ln -s "$(pwd)/dist/build/$p/$p" "${HOME}/bin"
 done
 
 
-scripts=( makeDelays.sh )
+scripts=( makeDelays.sh makeDelays32text.sh )
 for p in ${scripts[@]}; do 
   ln -s "$(pwd)/$p" "${HOME}/bin"
 done
